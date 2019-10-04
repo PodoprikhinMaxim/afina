@@ -77,7 +77,9 @@ bool SimpleLRU::put_new(const std::string &key, const std::string &value) {
 	while (_max_size - _current_size < key.size() + value.size()) {
 		if (_lru_head == nullptr)
 			return false;
-		DeleteLRU();
+		//DeleteLRU();
+		std::string key_h = _lru_head->key;
+		Delete(key_h);
 	}
 
 	auto new_element = std::unique_ptr<lru_node>(new lru_node(key, value));
@@ -125,7 +127,7 @@ bool SimpleLRU::RefreshList(lru_node &curr_node) {
 	return true;
 }
 
-bool SimpleLRU::DeleteLRU() {
+/*bool SimpleLRU::DeleteLRU() {
 	if (_lru_head == nullptr)
 		return false;
 
@@ -145,7 +147,7 @@ bool SimpleLRU::DeleteLRU() {
 
 	_current_size -= key.size() + value.size();
 	return true;
-}
+}*/
 
 } // namespace Backend
 } // namespace Afina

@@ -82,7 +82,7 @@ private:
 	bool put_new(const std::string &key, const std::string &value);
 	bool put_old(const std::string &key, const std::string &value);
 	bool RefreshList(lru_node &curr_node);
-	bool DeleteLRU();
+	//bool DeleteLRU();
 };
 
 } // namespace Backend
