@@ -78,7 +78,7 @@ bool SimpleLRU::put_new(const std::string &key, const std::string &value) {
 		if (_lru_head == nullptr)
 			return false;
 		//DeleteLRU();
-		std::string key_h = _lru_head->key;
+		const std::string key_h = _lru_head->key;
 		Delete(key_h);
 	}
 
@@ -93,7 +93,7 @@ bool SimpleLRU::put_new(const std::string &key, const std::string &value) {
        		_lru_head.swap(new_element);
 	}
 
-	_lru_index.insert(std::make_pair(key,std::reference_wrapper<lru_node>(*_lru_tail)));
+	_lru_index.insert(std::make_pair(std::ref(_lru_tail->key), std::ref(*_lru_tail)));
 
 	_current_size += key.size() + value.size();
 	//new_element.reset(); 
@@ -130,10 +130,8 @@ bool SimpleLRU::RefreshList(lru_node &curr_node) {
 /*bool SimpleLRU::DeleteLRU() {
 	if (_lru_head == nullptr)
 		return false;
-
 	auto value = _lru_head->value;
 	auto key = _lru_head->key;
-
 	_lru_index.erase(_lru_head->key);
 	if (_lru_head->next == nullptr) {
 		_lru_head.reset();
@@ -144,7 +142,6 @@ bool SimpleLRU::RefreshList(lru_node &curr_node) {
 		_lru_head.swap(_lru_head->next);
 		_lru_head->prev = nullptr;
 	}
-
 	_current_size -= key.size() + value.size();
 	return true;
 }*/

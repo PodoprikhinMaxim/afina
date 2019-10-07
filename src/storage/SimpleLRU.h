@@ -23,17 +23,13 @@ public:
                                         _lru_head(nullptr)  {}
 
 	~SimpleLRU() {
-		if (_lru_head == nullptr) {
-			return;
-		}
 		_lru_index.clear();
 
-		while(_lru_head->next != nullptr) {
-			std::unique_ptr<lru_node> node_to_delete;
-			node_to_delete.swap(_lru_head);
-			_lru_head.swap(node_to_delete->next);
+		while (_lru_tail != _lru_head.get()) {
+			_lru_tail = _lru_tail->prev;
+		_lru_tail->next.reset();
 		}
-		_lru_head.reset(); // TODO: Here is stack overflow
+		_lru_head.reset();
 	}
 
 	// Implements Afina::Storage interface
@@ -54,7 +50,7 @@ public:
 private:
 	// LRU cache node
 	using lru_node = struct lru_node {
-		std::string key;
+		const std::string key; 
 		std::string value;
 		std::unique_ptr<lru_node> next;
 		lru_node *prev;
@@ -77,7 +73,7 @@ private:
 	lru_node *_lru_tail;
 
 	// Index of nodes from list above, allows fast random access to elements by lru_node#key
-	std::map<std::string,std::reference_wrapper<lru_node> > _lru_index;
+	std::map<std::string, std::reference_wrapper<lru_node>> _lru_index; //поправить
    
 	bool put_new(const std::string &key, const std::string &value);
 	bool put_old(const std::string &key, const std::string &value);
