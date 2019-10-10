@@ -3,6 +3,9 @@
 
 #include <atomic>
 #include <thread>
+#include <list>
+#include <mutex>
+#include <condition_variable>
 
 #include <afina/network/Server.h>
 
@@ -20,38 +23,45 @@ namespace MTblocking {
  */
 class ServerImpl : public Server {
 public:
-    ServerImpl(std::shared_ptr<Afina::Storage> ps, std::shared_ptr<Logging::Service> pl);
-    ~ServerImpl();
+	ServerImpl(std::shared_ptr<Afina::Storage> ps, std::shared_ptr<Logging::Service> pl);
+	~ServerImpl();
 
-    // See Server.h
-    void Start(uint16_t port, uint32_t, uint32_t) override;
+	// See Server.h
+	void Start(uint16_t port, uint32_t, uint32_t) override;
 
-    // See Server.h
-    void Stop() override;
+	// See Server.h
+	void Stop() override;
 
-    // See Server.h
-    void Join() override;
+	// See Server.h
+	void Join() override;
 
 protected:
-    /**
-     * Method is running in the connection acceptor thread
-     */
-    void OnRun();
+	/**
+	* Method is running in the connection acceptor thread
+	*/
+	void OnRun();
 
 private:
-    // Logger instance
-    std::shared_ptr<spdlog::logger> _logger;
+	// Logger instance
+	std::shared_ptr<spdlog::logger> _logger;
 
-    // Atomic flag to notify threads when it is time to stop. Note that
-    // flag must be atomic in order to safely publisj changes cross thread
-    // bounds
-    std::atomic<bool> running;
+	// Atomic flag to notify threads when it is time to stop. Note that
+	// flag must be atomic in order to safely publisj changes cross thread
+	// bounds
+	std::atomic<bool> running;
 
-    // Server socket to accept connections on
-    int _server_socket;
+	// Server socket to accept connections on
+	int _server_socket;
+	std::list<int> _worker_sockets;
 
-    // Thread to run network on
-    std::thread _thread;
+	// Thread to run network on
+	std::thread _thread;
+
+	int _worker_limit, _worker_current;
+	std::mutex _worker_mutex;
+	std::condition_variable _worker_cv;
+	// Doing all work for one thread
+	void WorkerRunning(int socket);
 };
 
 } // namespace MTblocking
