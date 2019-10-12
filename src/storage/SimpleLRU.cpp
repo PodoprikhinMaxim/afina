@@ -44,19 +44,19 @@ bool SimpleLRU::Delete(const std::string &key) {
 	if (delete_element.prev == nullptr) {
 		delete_element.next->prev = nullptr;
 		_lru_head.swap(delete_element.next);
-		delete_element.next = nullptr;
+		delete_element.next.reset();
 		return true;
 	}
 	else if (delete_element.next == nullptr) {
 		delete_element.prev->next.swap(delete_element.next);
 		_lru_tail = delete_element.prev;
-		delete_element.next = nullptr;
+		delete_element.next.reset();
 		return true;
 	}
 	else {
 		delete_element.next->prev = delete_element.prev;
 		delete_element.prev->next.swap(delete_element.next);
-		delete_element.next = nullptr;
+		delete_element.next.reset();
 		return true;
 	}
 }
