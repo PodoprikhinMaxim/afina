@@ -40,7 +40,6 @@ void ServerImpl::Start(uint16_t port, uint32_t n_accept, uint32_t n_workers) {
 	_logger->info("Start mt_blocking network service");
 
 	_worker_limit = n_workers;
-	_worker_current = 0;
 	sigset_t sig_mask;
 	sigemptyset(&sig_mask);
 	sigaddset(&sig_mask, SIGPIPE);
@@ -133,13 +132,12 @@ void ServerImpl::OnRun() {
 		// TODO: Start new thread and process data from/to connection
 		{
 			std::lock_guard<std::mutex> lock(_worker_mutex);
-			if (_worker_current == _worker_limit) {
+			if (_worker_sockets.size() == _worker_limit)  { //поправить, тут нужно size чекать
 				std::string msg = "Achieved max number of theads!";
 				send(client_socket, msg.data(), msg.size(), 0);
 				close(client_socket);
 			}
 			else {
-				_worker_current++;
 				_worker_sockets.push_back(client_socket);
 				std::thread _work(&ServerImpl::WorkerRunning, this, client_socket);
 				_work.detach();
@@ -150,7 +148,7 @@ void ServerImpl::OnRun() {
 	{
 		// waiting for ending least threads
 		std::unique_lock<std::mutex> lock(_worker_mutex);
-		_worker_cv.wait(lock, [this](){ return _worker_current==0; });
+		_worker_cv.wait(lock, [this](){ return _worker_sockets.size() == 0; });
 	}
 	// Cleanup on exit...
 	_logger->warn("Network stopped");
@@ -251,8 +249,7 @@ void ServerImpl::WorkerRunning(int client_socket) {
 
 	{
 		std::lock_guard<std::mutex> lock(_worker_mutex);
-		_worker_current--;
-		if (_worker_current == 0 && !running.load())
+		if (_worker_sockets.size() == 0 && !running.load())
 			_worker_cv.notify_all();
 	}
 }

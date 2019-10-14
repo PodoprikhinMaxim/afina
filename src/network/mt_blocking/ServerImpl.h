@@ -57,7 +57,7 @@ private:
 	// Thread to run network on
 	std::thread _thread;
 
-	int _worker_limit, _worker_current;
+	int _worker_limit;
 	std::mutex _worker_mutex;
 	std::condition_variable _worker_cv;
 	// Doing all work for one thread
