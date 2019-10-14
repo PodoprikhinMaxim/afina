@@ -58,6 +58,7 @@ private:
 	std::thread _thread;
 
 	int _worker_limit;
+	int _worker_current;
 	std::mutex _worker_mutex;
 	std::condition_variable _worker_cv;
 	// Doing all work for one thread
