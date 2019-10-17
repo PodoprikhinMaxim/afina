@@ -28,7 +28,8 @@ class Executor {
         kStopped
     };
 
-    Executor(std::string name, int size);
+    Executor(std::string name, std::size_t low_watermark, std::size_t high_watermark,
+            std::size_t max_queue_size, std::chrono::milliseconds idle_time);
     ~Executor();
 
     /**
@@ -51,12 +52,17 @@ class Executor {
         auto exec = std::bind(std::forward<F>(func), std::forward<Types>(args)...);
 
         std::unique_lock<std::mutex> lock(this->mutex);
-        if (state != State::kRun) {
-            return false;
+        if (state != State::kRun || tasks.size() >= hight_watermark) {
+			return false;
         }
 
         // Enqueue new task
         tasks.push_back(exec);
+		if(_current_threads == current_threads_working && _current_threads < hight_watermark) {
+			_current_threads++;
+			current_threads_working++;
+			std::thread{perform, this}.detach();
+		}
         empty_condition.notify_one();
         return true;
     }
@@ -97,6 +103,16 @@ private:
      * Flag to stop bg threads
      */
     State state;
+
+	std::size_t low_watermark;
+    std::size_t high_watermark;
+    std::size_t max_queue_size;
+    std::chrono::milliseconds idle_time;
+	std::size_t _current_threads = 0;
+	std::size_t _current_threads_working = 0;
+	std::condition_variable _stop_cv;
+	friend void _perform_task(Executor* exec);
+	
 };
 
 } // namespace Concurrency
