@@ -52,6 +52,8 @@ private:
 
     // Thread to run network on
     std::thread _thread;
+
+	void WorkerRunning(int socket);
 };
 
 } // namespace MTblocking
