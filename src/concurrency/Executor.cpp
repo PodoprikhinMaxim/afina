@@ -2,61 +2,79 @@
 
 namespace Afina {
 namespace Concurrency {
-	Executor::Executor(std::size_t low, std::size_t high, std::size_t max_tasks, std::chrono::milliseconds time)
-        : low_watermark(low), high_watermark(high), max_queue_size(max_tasks), idle_time(time) {
-		std::lock_guard<std::mutex> lock(mutex);
-		for(std::size_t i = 0; i < low_watermark; i++)
-		{
-			std::thread{perform, this}.detach();
-		}
-		current_threads = low_watermark;
-		current_threads_running = low_watermark;
-	}
-	Executor::~Executor() {}
-	void Stop(bool await = false) {
-		std::lock_guard<std::mutex> lock(mutex);
-		state = State::KStopping;
-		while (std.threads.size > 0) {
-			_stop_cv.wait(lock);
-		}
-		state = State::KStopped;
-	}
 
-	void _perform_task(Executor* exec)
-	{
-		while (exec->state == Executor::State::kRun) {
-			std::function<void()> task;
-			auto time_until = std::chrono::system_clock::now()
-				+ std::chrono::milliseconds(exec->idle_time);
+    Executor::Executor(int low_watermark, int high_watermark,
+        int max_queue_size, int idle_time):
+		_low_watermark(low_watermark), _high_watermark(high_watermark), _max_queue_size(max_queue_size), _idle_time(idle_time)
+    {
+    }
 
-			{
-				std::unique_lock<std::mutex> lock(exec->mutex);
-				while (exec->_tasks.empty() && exec->state == Executor::State::kRun) {
-					exec->_current_threads_working--;
-					if (exec->empty_condition.wait_until(lock, time_until) == std::cv_status::timeout) {
-						if (exec->_current_threads > exec->low_watermark) {
-							exec->_current_threads--;
-                           	break;
-						}
-						else {
-							exec->empty_condition.wait(lock);
-						}
-					}
-						exec->_current_threads_working++;
-				}
-				task = exec->_tasks.front();
-				exec->_tasks.pop_front();
-			}
+    Executor::~Executor() {}
 
-				task();
-		}
+    void Executor::Start()
+    {
+        _state = State::kRun;
+        _free_threads = 0;
+        for (int i = 0; i < _low_watermark; ++i) {
+            _curr_threads++;
+            std::thread _work(&_perform_task, this);
+            _work.detach();
+        }
+    }
 
-		{
-			std::unique_lock<std::mutex> lock(exec->_mutex);
-			exec->_current_threads--;
-			if (exec->_current_threads == 0) {
-				exec->_stop_cv.notify_all();
-			}
-		}
+    void Executor::Stop(bool await)
+    {
+        std::unique_lock<std::mutex> lock(_mutex);
+        _state = State::kStopping;
+        empty_condition.notify_all();
+
+        while (!_threads.empty()) {
+            _stop_cv.wait(lock);
+        }
+        _state = State::kStopped;
+    }
+
+    void Executor::_add_thread()
+    {
+        std::thread _work(&_perform_task, this);
+        _work.detach();
+    }
+
+    void _perform_task(Executor* exec)
+    {
+        while (exec->_state == Executor::State::kRun) {
+            std::function<void()> task;
+            auto time_until = std::chrono::system_clock::now()
+                + std::chrono::milliseconds(exec->_idle_time);
+
+            {
+                std::unique_lock<std::mutex> lock(exec->_mutex);
+                while (exec->_tasks.empty() && exec->_state == Executor::State::kRun) {
+                    exec->_free_threads++;
+                    if (exec->empty_condition.wait_until(lock, time_until) == std::cv_status::timeout) {
+                        if (exec->_curr_threads > exec->_low_watermark) {
+                            exec->_curr_threads--;
+                            return;
+                        } else {
+                            exec->empty_condition.wait(lock);
+                        }
+                    }
+                    exec->_free_threads--;
+                }
+                task = exec->_tasks.front();
+                exec->_tasks.pop_front();
+            }
+
+            task();
+        }
+
+        {
+            std::unique_lock<std::mutex> lock(exec->_mutex);
+            exec->_curr_threads--;
+            if (exec->_curr_threads == 0) {
+                exec->_stop_cv.notify_all();
+            }
+        }
+    }
 }
 } // namespace Afina
