@@ -58,7 +58,7 @@ namespace Concurrency {
             auto exec = std::bind(std::forward<F>(func), std::forward<Types>(args)...);
 
             std::unique_lock<std::mutex> lock(this->_mutex);
-            if (_state != State::kRun || _tasks.size() >= _high_watermark) {
+            if (_state != State::kRun || _tasks.size() >= _max_queue_size) {
                 return false;
             }
 
