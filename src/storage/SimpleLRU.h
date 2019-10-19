@@ -76,12 +76,12 @@ private:
 	std::map<std::reference_wrapper<const std::string>, std::reference_wrapper<lru_node>, std::less<std::string>> _lru_index;
    
 	bool put_new(const std::string &key, const std::string &value);
-	bool put_old(const std::string &key, const std::string &value);
+	bool put_old(lru_node &curr_node, const std::string &value);
 	bool RefreshList(lru_node &curr_node);
 	//bool DeleteLRU();
 };
 
 } // namespace Backend
-} // namespace Afina
+} // namespace Afina 
 
 #endif // AFINA_STORAGE_SIMPLE_LRU_H
