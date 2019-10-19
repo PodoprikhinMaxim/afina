@@ -7,7 +7,8 @@ namespace Backend {
 bool SimpleLRU::Put(const std::string &key, const std::string &value) { 
 	if(key.size() + value.size() > _max_size)
 		return false;
-	if(_lru_index.find(key) != _lru_index.end())
+	auto it = _lru_index.find(key);
+	if(it != _lru_index.end())
 		return put_old(key, value);
 	return put_new(key,value);
 }
@@ -16,7 +17,8 @@ bool SimpleLRU::Put(const std::string &key, const std::string &value) {
 bool SimpleLRU::PutIfAbsent(const std::string &key, const std::string &value) {
 	if (key.size() + value.size() > _max_size)
 		return false;
-	if (_lru_index.find(key) != _lru_index.end())
+	auto it = _lru_index.find(key);
+	if (it != _lru_index.end())
 		return false;
 	return put_new(key,value);
  
@@ -103,8 +105,16 @@ bool SimpleLRU::put_new(const std::string &key, const std::string &value) {
 bool SimpleLRU::put_old(const std::string &key, const std::string &value) {
 	auto iterator = _lru_index.find(key);
 	auto old_value = iterator->second.get().value;
-	iterator->second.get().value = value;
 	RefreshList(iterator->second.get());
+	while(value.size() - old_value.size() > _max_size - _current_size) {
+		if (_lru_head == nullptr)
+			return false;
+		//DeleteLRU();
+		const std::string key_h = _lru_head->key;
+		Delete(key_h);
+	}
+	iterator->second.get().value = value;
+	//RefreshList(iterator->second.get());
 	_current_size += value.size() - old_value.size();
 	return true;
 }
