@@ -111,7 +111,7 @@ bool SimpleLRU::put_old(lru_node &curr_node, const std::string &value) {
     if (value.size() >= old_value.size()) {
         while (value.size() - old_value.size() > _max_size - _current_size) {
             if (_lru_head == nullptr) {
-                return false;
+                break;
             }
             DeleteLRU();
         }
@@ -121,7 +121,7 @@ bool SimpleLRU::put_old(lru_node &curr_node, const std::string &value) {
     } else {
         while (old_value.size() - value.size() > _max_size - _current_size) {
             if (_lru_head == nullptr) {
-                return false;
+                break;
             }
             DeleteLRU();
         }
