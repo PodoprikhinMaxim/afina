@@ -126,7 +126,7 @@ bool SimpleLRU::put_old(lru_node &curr_node, const std::string &value) {
             DeleteLRU();
         }
         curr_node.value = value;
-        _current_size += old_value.size() - value.size();
+        _current_size -= old_value.size() - value.size();
         return true;
     }
 }
