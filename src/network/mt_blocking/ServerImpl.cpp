@@ -4,6 +4,7 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 
 #include <arpa/inet.h>
@@ -18,7 +19,6 @@
 #include <spdlog/logger.h>
 
 #include <afina/Storage.h>
-#include <afina/concurrency/Executor.h>
 #include <afina/execute/Command.h>
 #include <afina/logging/Service.h>
 
@@ -39,6 +39,8 @@ void ServerImpl::Start(uint16_t port, uint32_t n_accept, uint32_t n_workers) {
     _logger = pLogging->select("network");
     _logger->info("Start mt_blocking network service");
 
+    _worker_num = n_workers;
+    _worker_current = 0;
     sigset_t sig_mask;
     sigemptyset(&sig_mask);
     sigaddset(&sig_mask, SIGPIPE);
@@ -80,6 +82,12 @@ void ServerImpl::Start(uint16_t port, uint32_t n_accept, uint32_t n_workers) {
 // See Server.h
 void ServerImpl::Stop() {
     running.store(false);
+    {
+        std::lock_guard<std::mutex> lock(_worker_mutex);
+        for (auto &socket : _worker_sockets) {
+            shutdown(socket, SHUT_RD);
+        }
+    }
     shutdown(_server_socket, SHUT_RDWR);
 }
 
@@ -101,7 +109,6 @@ void ServerImpl::OnRun() {
     Protocol::Parser parser;
     std::string argument_for_command;
     std::unique_ptr<Execute::Command> command_to_execute;
-    Afina::Concurrency::Executor thread_pool(10, 50, 500, 1000);
     while (running.load()) {
         _logger->debug("waiting for connection...");
 
@@ -134,21 +141,28 @@ void ServerImpl::OnRun() {
             setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
         }
 
-        if (!thread_pool.Execute(&ServerImpl::WorkerRunning, this, client_socket)) {
-            close(client_socket);
+        // TODO: Start new thread and process data from/to connection
+        {
+            std::lock_guard<std::mutex> lock(_worker_mutex);
+            if (_worker_sockets.size() == _worker_num) {
+                close(client_socket);
+            } else {
+                _worker_sockets.insert(client_socket);
+                std::thread _work(&ServerImpl::WorkerRunning, this, client_socket);
+                _work.detach();
+            }
         }
     }
 
+    {
+        std::unique_lock<std::mutex> lock(_worker_mutex);
+        _worker_cv.wait(lock, [this]() { return _worker_sockets.size() == 0; });
+    }
     // Cleanup on exit...
     _logger->warn("Network stopped");
 }
 
 void ServerImpl::WorkerRunning(int client_socket) {
-    // Here is connection state
-    // - parser: parse state of the stream
-    // - command_to_execute: last command parsed out of stream
-    // - arg_remains: how many bytes to read from stream to get command argument
-    // - argument_for_command: buffer stores argument
     std::size_t arg_remains;
     Protocol::Parser parser;
     std::string argument_for_command;
@@ -232,6 +246,13 @@ void ServerImpl::WorkerRunning(int client_socket) {
     }
 
     close(client_socket);
+
+    {
+        std::lock_guard<std::mutex> lock(_worker_mutex);
+        _worker_sockets.erase(_worker_sockets.find(client_socket));
+        if (_worker_sockets.size() == 0 && !running.load())
+            _worker_cv.notify_all();
+    }
 }
 
 } // namespace MTblocking
