@@ -21,13 +21,17 @@ void Executor::Start() {
 
 void Executor::Stop(bool await) {
     std::unique_lock<std::mutex> lock(_mutex);
-    _state = State::kStopping;
-    empty_condition.notify_all();
+    if(_state == State::kRun) {
+        _state = State::kStopping;
+        empty_condition.notify_all();
 
-    while (!_threads.empty()) {
-        _stop_cv.wait(lock);
+        while (!_threads.empty()) {
+            _stop_cv.wait(lock);
+        }
+        _state = State::kStopped;
+    } else {
+        _state = State::kStopped;
     }
-    _state = State::kStopped;
 }
 
 void Executor::_add_thread() {
@@ -58,7 +62,11 @@ void _perform_task(Executor *exec) {
             exec->_tasks.pop_front();
         }
 
-        task();
+        try{
+            task();
+        } catch(...) {
+            std::terminate();
+        }
     }
 
     {
