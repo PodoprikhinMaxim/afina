@@ -30,7 +30,7 @@ void Executor::Stop(bool await) {
         }
         _state = State::kStopped;
     } else {
-        _state = State::kStopped;
+        //_state = State::kStopped;
     }
 }
 
