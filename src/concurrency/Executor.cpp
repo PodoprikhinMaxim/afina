@@ -25,7 +25,7 @@ void Executor::Stop(bool await) {
         _state = State::kStopping;
         empty_condition.notify_all();
 
-        while (!_threads.empty()) {
+        while (!_threads.empty() && await) {
             _stop_cv.wait(lock);
         }
         _state = State::kStopped;
