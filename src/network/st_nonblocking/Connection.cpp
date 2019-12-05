@@ -110,8 +110,6 @@ void Connection::DoRead() {
                     result_to_write += "\r\n";
                     // Save results for better time
                     results_to_write.push_back(result_to_write);
-                    // _answers.push_back(result_to_write);
-                    // Поменять так чтобы сохраняло состояние ответов
 
                     // Prepare for the next command
                     command_to_execute.reset();
