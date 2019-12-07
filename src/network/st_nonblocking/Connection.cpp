@@ -115,13 +115,11 @@ void Connection::DoRead() {
                     command_to_execute.reset();
                     argument_for_command.resize(0);
                     parser.Reset();
-
-                    _event.events = Masks::read_write;
+                    if (_event.events != Masks::read_write) {
+                        _event.events = Masks::read_write;
+                    }
                 }
             } // while (read_bytes)
-        }
-        if (_readed_bytes > 0) {
-            throw std::runtime_error(std::string(strerror(errno)));
         }
     } catch (std::runtime_error &ex) {
     }
@@ -130,12 +128,13 @@ void Connection::DoRead() {
 // See Connection.h
 void Connection::DoWrite() {
     //std::cout << "DoWrite" << std::endl;
-    int max_iov = 128;
+    const int max_iov = 128;
     int results_num = results_to_write.size();
-    int max_num = max_iov > results_num ? results_num : max_iov;
+    //int max_num = max_iov > results_num ? results_num : max_iov;
+    int max_num = std::min(max_iov, results_num);
 
     auto results_it = results_to_write.begin();
-    struct iovec results_iov[max_iov];
+    struct iovec results_iov[max_num];
 
     for (int i = 0; i < max_num; ++i, ++results_it) {
         results_iov[i].iov_base = &(*results_it)[0];
@@ -147,16 +146,14 @@ void Connection::DoWrite() {
     int written = writev(_socket, results_iov, results_num);
     _written_bytes += written;
 
-    int i = 0;
-    for (auto it = &results_iov[0]; results_num > i && _written_bytes > (*it).iov_len; ++i, ++it) {
+    auto resW_end = results_to_write.begin();
+    for (auto it = &results_iov[0]; _written_bytes > (*it).iov_len; ++resW_end, ++it) {
         _written_bytes -= (*it).iov_len;
     }
 
-    results_to_write.erase(results_to_write.begin(), results_to_write.begin() + i);
+    results_to_write.erase(results_to_write.begin(), resW_end);
     if (results_to_write.size() == 0) {
         _event.events = Masks::read;
-    } else {
-        _event.events = Masks::read_write;
     }
 }
 
