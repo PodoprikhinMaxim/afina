@@ -128,7 +128,7 @@ void Connection::DoRead() {
 // See Connection.h
 void Connection::DoWrite() {
     //std::cout << "DoWrite" << std::endl;
-    const int max_iov = 128;
+    static int max_iov = 128;
     int results_num = results_to_write.size();
     //int max_num = max_iov > results_num ? results_num : max_iov;
     int max_num = std::min(max_iov, results_num);
@@ -140,7 +140,7 @@ void Connection::DoWrite() {
         results_iov[i].iov_base = &(*results_it)[0];
         results_iov[i].iov_len = (*results_it).size();
     }
-    results_iov[0].iov_base = results_iov[0].iov_base + _written_bytes;
+    results_iov[0].iov_base = static_cast<void *>(static_cast<uint8_t *>(results_iov[0].iov_base) + _written_bytes);
     results_iov[0].iov_len -= _written_bytes;
 
     int written = writev(_socket, results_iov, results_num);
