@@ -123,9 +123,6 @@ void Connection::DoRead() {
                 }
             } // while (read_bytes)
         }
-        if (_readed_bytes > 0) {
-            throw std::runtime_error(std::string(strerror(errno)));
-        }
     } catch (std::runtime_error &ex) {
     }
 }
@@ -134,14 +131,15 @@ void Connection::DoRead() {
 void Connection::DoWrite() {
     //std::cout << "DoWrite" << std::endl;
     std::unique_lock<std::mutex> lock(_lock);
-    static int max_iov = 128;
+    const int max_iov = 128;
     int results_num = results_to_write.size();
+    int max_num = std::min(max_iov, results_num);
     // assert(results_num > 0);
 
     auto results_it = results_to_write.begin();
-    struct iovec results_iov[max_iov];
+    struct iovec results_iov[max_num];
 
-    for (int i = 0; i < max_iov && i < results_num; ++i, ++results_it) {
+    for (int i = 0; i < max_num; ++i, ++results_it) {
         results_iov[i].iov_base = &(*results_it)[0];
         results_iov[i].iov_len = (*results_it).size();
     }
@@ -151,17 +149,17 @@ void Connection::DoWrite() {
     int written = writev(_socket, results_iov, results_num);
     _written_bytes += written;
 
-    auto end_it = results_to_write.begin();
-    for (auto it = &results_iov[0]; _written_bytes > (*it).iov_len; ++it, ++end_it) {
+    auto resW_end = results_to_write.begin();
+    for (auto it = &results_iov[0]; _written_bytes > (*it).iov_len; ++it, ++resW_end) {
         _written_bytes -= (*it).iov_len;
     }
 
-    results_to_write.erase(results_to_write.begin(), end_it);
+    results_to_write.erase(results_to_write.begin(), resW_end);
     if (results_to_write.size() == 0) {
         _event.events = Masks::read;
     }
 }
 
-} // namespace STnonblock
+} // namespace MTnonblock
 } // namespace Network
 } // namespace Afina
