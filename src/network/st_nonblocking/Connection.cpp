@@ -140,7 +140,7 @@ void Connection::DoWrite() {
         results_iov[i].iov_base = &(*results_it)[0];
         results_iov[i].iov_len = (*results_it).size();
     }
-    results_iov[0].iov_base = static_cast<void *>(static_cast<uint8_t *>(results_iov[0].iov_base) + _written_bytes);
+    results_iov[0].iov_base = static_cast<void *>(static_cast<char *>(results_iov[0].iov_base) + _written_bytes);
     results_iov[0].iov_len -= _written_bytes;
 
     int written = writev(_socket, results_iov, results_num);
