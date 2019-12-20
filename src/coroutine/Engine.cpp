@@ -13,15 +13,15 @@ void Engine::Store(context &ctx) {
     ctx.Hight = &cur_address;
     ctx.Low = StackBottom;
     if (ctx.Hight < ctx.Low) {
-        auto tmp = ctx.Hight;
-        ctx.Hight = ctx.Low;
-        ctx.Low = tmp;
-    }
-
-    if (std::get<0>(ctx.Stack) != nullptr) {
-        delete std::get<0>(ctx.Stack);
+        std::swap(ctx.Hight, ctx.Low);
     }
     std::size_t length = ctx.Hight - ctx.Low;
+    auto &size = std::get<1>(ctx.Stack);
+    if (size < need_size) {
+        if (std::get<0>(ctx.Stack) != nullptr) {
+            delete std::get<0>(ctx.Stack);
+        }
+    }
     char *stack = new char[length];
     std::memcpy(stack, ctx.Low, length);
     ctx.Stack = std::make_tuple(stack, length);
@@ -36,7 +36,6 @@ void Engine::Restore(context &ctx) {
 
     std::memcpy(ctx.Low, std::get<0>(ctx.Stack), std::get<1>(ctx.Stack));
     cur_routine = &ctx;
-    // TOASK: any number except 0?
     longjmp(ctx.Environment, 1);
 }
 
