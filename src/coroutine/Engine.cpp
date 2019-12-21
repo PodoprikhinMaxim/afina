@@ -20,7 +20,7 @@ void Engine::Store(context &ctx) {
     auto &stack = std::get<0>(ctx.Stack);
     if (size < need_size) {
         if (stack != nullptr) {
-            delete stack;
+            delete[] stack;
         }
         stack = new char[need_size];
     }
