@@ -25,7 +25,6 @@ void Engine::Store(context &ctx) {
         stack = new char[need_size];
     }
     std::memcpy(stack, ctx.Low, need_size);
-    ctx.Stack = std::make_tuple(stack, need_size);
 }
 
 void Engine::Restore(context &ctx) {
@@ -41,14 +40,15 @@ void Engine::Restore(context &ctx) {
 }
 
 void Engine::yield() {
-    Store(*cur_routine);
     auto routine_todo = alive;
     if (routine_todo == cur_routine) {
         if (alive->next != nullptr) {
             routine_todo = alive->next;
-            sched(static_cast<void *>(routine_todo));
+        } else {
+            return;
         }
     }
+    Enter(*routine_todo);
 }
 
 void Engine::sched(void *routine_) {
@@ -62,6 +62,17 @@ void Engine::sched(void *routine_) {
         context *ctx = static_cast<context *>(routine_);
         Restore(*ctx);
     }
+}
+
+void Engine::Enter(context &ctx) {
+    if (cur_routine != nullptr && cur_routine != idle_ctx) {
+        if (setjmp(cur_routine->Environment) > 0) {
+            return;
+        }
+        Store(*cur_routine);
+    }
+    cur_routine = &ctx;
+    Restore(ctx);
 }
 
 } // namespace Coroutine
