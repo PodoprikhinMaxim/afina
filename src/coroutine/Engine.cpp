@@ -15,16 +15,17 @@ void Engine::Store(context &ctx) {
     if (ctx.Hight < ctx.Low) {
         std::swap(ctx.Hight, ctx.Low);
     }
-    std::size_t length = ctx.Hight - ctx.Low;
+    std::size_t need_size = ctx.Hight - ctx.Low;
     auto &size = std::get<1>(ctx.Stack);
+    auto &stack = std::get<0>(ctx.Stack);
     if (size < need_size) {
-        if (std::get<0>(ctx.Stack) != nullptr) {
-            delete std::get<0>(ctx.Stack);
+        if (stack != nullptr) {
+            delete stack;
         }
+        stack = new char[need_size];
     }
-    char *stack = new char[length];
-    std::memcpy(stack, ctx.Low, length);
-    ctx.Stack = std::make_tuple(stack, length);
+    std::memcpy(stack, ctx.Low, need_size);
+    ctx.Stack = std::make_tuple(stack, need_size);
 }
 
 void Engine::Restore(context &ctx) {
