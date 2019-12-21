@@ -23,8 +23,10 @@ void Engine::Store(context &ctx) {
     if (size < need_size) {
         delete[] stack;
         stack = new char[need_size];
+        size = need_size
     }
     std::memcpy(stack, ctx.Low, need_size);
+    ctx.Stack = std::make_tuple(stack, size);
 }
 
 void Engine::Restore(context &ctx) {
@@ -34,7 +36,7 @@ void Engine::Restore(context &ctx) {
         Restore(ctx);
     }
 
-    std::memcpy(ctx.Low, std::get<0>(ctx.Stack), ctx.Hight - ctx.Low);
+    std::memcpy(ctx.Low, std::get<0>(ctx.Stack), std::get<1>(ctx.Stack));
     cur_routine = &ctx;
     longjmp(ctx.Environment, 1);
 }
