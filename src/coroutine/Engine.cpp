@@ -10,18 +10,18 @@ namespace Coroutine {
 
 void Engine::Store(context &ctx) {
     char cur_address;
-    ctx.Hight = &cur_address;
+    ctx.Hight = StackBottom;
     ctx.Low = StackBottom;
-    if (ctx.Hight < ctx.Low) {
-        std::swap(ctx.Hight, ctx.Low);
+    if (StackBottom < &cur_address) {
+        ctx.Hight = &cur_address;
+    } else {
+        ctx.Low = &cur_address;
     }
     std::size_t need_size = ctx.Hight - ctx.Low;
     auto &size = std::get<1>(ctx.Stack);
     auto &stack = std::get<0>(ctx.Stack);
     if (size < need_size) {
-        if (stack != nullptr) {
-            delete[] stack;
-        }
+        delete[] stack;
         stack = new char[need_size];
     }
     std::memcpy(stack, ctx.Low, need_size);
