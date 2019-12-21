@@ -34,7 +34,7 @@ void Engine::Restore(context &ctx) {
         Restore(ctx);
     }
 
-    std::memcpy(ctx.Low, std::get<0>(ctx.Stack), std::get<1>(ctx.Stack));
+    std::memcpy(ctx.Low, std::get<0>(ctx.Stack), ctx.Hight - ctx.Low);
     cur_routine = &ctx;
     longjmp(ctx.Environment, 1);
 }
