@@ -24,9 +24,9 @@ void Engine::Store(context &ctx) {
         delete[] stack;
         stack = new char[need_size];
         size = need_size
+        
     }
-    std::memcpy(stack, ctx.Low, need_size);
-    ctx.Stack = std::make_tuple(stack, size);
+    std::memcpy(stack, ctx.Low, size);
 }
 
 void Engine::Restore(context &ctx) {
