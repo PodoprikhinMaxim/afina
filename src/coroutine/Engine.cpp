@@ -42,6 +42,9 @@ void Engine::Restore(context &ctx) {
 }
 
 void Engine::yield() {
+    if (alive == nullptr) {
+        return;
+    }
     auto routine_todo = alive;
     if (routine_todo == cur_routine) {
         if (alive->next != nullptr) {
@@ -59,11 +62,7 @@ void Engine::sched(void *routine_) {
     } else if (routine_ == nullptr) {
         yield();
     }
-    if (setjmp(cur_routine->Environment) == 0) {
-        Store(*cur_routine);
-        context *ctx = static_cast<context *>(routine_);
-        Restore(*ctx);
-    }
+    Enter(*(static_cast<context *>(routine_)));
 }
 
 void Engine::Enter(context &ctx) {
