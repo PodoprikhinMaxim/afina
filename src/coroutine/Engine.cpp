@@ -23,10 +23,10 @@ void Engine::Store(context &ctx) {
     if (size < need_size) {
         delete[] stack;
         stack = new char[need_size];
-        size = need_size
+        size = need_size;
         
     }
-    std::memcpy(stack, ctx.Low, size);
+    std::memcpy(stack, ctx.Low, need_size);
 }
 
 void Engine::Restore(context &ctx) {
