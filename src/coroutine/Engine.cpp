@@ -17,7 +17,7 @@ void Engine::Store(context &ctx) {
     } else {
         ctx.Low = &cur_address;
     }
-    std::size_t need_size = ctx.Hight - ctx.Low;
+    auto need_size = ctx.Hight - ctx.Low;
     auto &size = std::get<1>(ctx.Stack);
     auto &buf = std::get<0>(ctx.Stack);
     if (size < need_size) {
@@ -26,17 +26,18 @@ void Engine::Store(context &ctx) {
         size = need_size;
         
     }
-    std::memcpy(buf, ctx.Low, need_size);
+    memcpy(buf, ctx.Low, need_size);
 }
 
 void Engine::Restore(context &ctx) {
     char cur_address;
     // because we don't know what is direction of growing
-    while ((ctx.Low < &cur_address) && (ctx.Hight > &cur_address)) {
+    if ((ctx.Low < &cur_address) && (ctx.Hight > &cur_address)) {
         Restore(ctx);
     }
-
-    std::memcpy(ctx.Low, std::get<0>(ctx.Stack), std::get<1>(ctx.Stack));
+    auto &buf = std::get<0>(ctx.Stack);
+    auto size = std::get<1>(ctx.Stack);
+    memcpy(ctx.Low, buf, size);
     cur_routine = &ctx;
     longjmp(ctx.Environment, 1);
 }
