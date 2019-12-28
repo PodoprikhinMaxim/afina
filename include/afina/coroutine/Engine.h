@@ -29,7 +29,7 @@ private:
         char *Hight = nullptr;
 
         // coroutine stack copy buffer
-        std::tuple<char *, uint32_t> Stack = std::make_tuple(nullptr, 0);
+        std::tuple<char *, std::size_t> Stack = std::make_tuple(nullptr, 0);
 
         // Saved coroutine context (registers)
         jmp_buf Environment;
@@ -73,7 +73,7 @@ protected:
     /**
      * Suspend current coroutine execution and execute given context
      */
-    // void Enter(context& ctx);
+    void Enter(context& ctx);
 
 public:
     Engine() : StackBottom(0), cur_routine(nullptr), alive(nullptr) {}
